@@ -17,6 +17,7 @@ while generating. It implements only what this schema uses.
 ## Layout
 
 ```
+examples/                  generated code, to read (see "Generated code")
 tools/gen_executor.rb      generator (depth-first executor)
 tools/batch_emitter.rb     generator, breadth-first part (GQL_MODE=batch)
 runtime/gql_runtime.rb     schema-independent runtime: parser, validator, helpers
@@ -31,6 +32,25 @@ profile_large_result/
   timing.rb                shared timing loop
   compare.sh, summarize.rb timing rounds and their minimum
 ```
+
+## Generated code
+
+To see what the generator writes without running anything:
+
+- `examples/user/`: the smallest schema, one `User` type with one `name` field
+  (`schema.rb`), and the code generated from it (`user_exec.rb`). Each object
+  type becomes an `exec_<Type>` method; in it, how the field is read
+  (`obj.name`), the null check (`String!`) and the conversion (`to_s`) are
+  already decided. `ruby run.rb '{ users { name } }'` runs a query with it,
+  without graphql-ruby.
+- `examples/profile_large_result/`: the depth-first (`large_exec.rb`) and
+  breadth-first (`exec_batch.rb`) executors for the benchmark's schema, the same
+  code the benchmark runs. They load the data from
+  `profile_large_result/data.rb`, which `extract.rb` (or `reproduce.sh`) writes
+  from graphql-ruby's `benchmark/run.rb`.
+
+Regenerate them with `tools/gen_executor.rb SCHEMA_FILE SCHEMA_CONST DATA_FILE OUT`
+(`GQL_MODE=batch` for the breadth-first one), with graphql-ruby on the load path.
 
 ## Requirements
 
@@ -71,8 +91,8 @@ It does everything from scratch and stops at the first failure:
 | `SPINEL_CC` | C compiler Spinel calls (`--cc=`) | `gcc` |
 | `ROUNDS` | timing rounds (one process each) | `5` |
 
-The generated files contain absolute `require_relative` paths, so
-`reproduce.sh` regenerates them on every run.
+The generated files load the runtime and the data with `require_relative`
+paths relative to themselves, so they keep working when the directory is moved.
 
 ### Lazy and eager data
 
